@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>แผนที่คาดการณ์ฝนตก เขตเมืองขอนแก่น</title>
+  
+  <!-- 1. ดึง Leaflet CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  
+  <style>
+    body, html { margin: 0; padding: 0; height: 100%; }
+    #map { height: 100vh; width: 100%; }
+
+    /* ตกแต่งกล่องคำอธิบายสัญลักษณ์ (Legend) */
+    .legend {
+      background: rgba(255, 255, 255, 0.9);
+      padding: 12px;
+      line-height: 20px;
+      color: #333;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+      font-family: sans-serif;
+      font-size: 13px;
+    }
+    .legend h4 { margin: 0 0 8px 0; font-size: 14px; }
+    .legend i {
+      width: 20px;
+      height: 16px;
+      float: left;
+      margin-right: 8px;
+      opacity: 0.85;
+      border-radius: 2px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- พื้นที่แสดงแผนที่ -->
+  <div id="map"></div>
+
+  <!-- 2. ดึง Leaflet JavaScript -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  
+  <script>
+    // 3. กำหนดศูนย์กลางแผนที่ที่ตัวเมืองขอนแก่น
+    const map = L.map('map').setView([16.4322, 102.8236], 12);
+
+    // 4. โหลดแผนที่ฐานจาก OpenStreetMap
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      attribution: '&copy; OpenStreetMap contributors'
+    }).addTo(map);
+
+    // 5. ฟังก์ชันแปลง % โอกาสเกิดฝน เป็นโทนสีฟ้า -> น้ำเงินเข้ม
+    function getRainColor(chance) {
+      return chance > 80 ? '#08306b' : // น้ำเงินเข้มจัด
+             chance > 60 ? '#08519c' : // น้ำเงินเข้ม
+             chance > 40 ? '#2171b5' : // น้ำเงินกลาง
+             chance > 20 ? '#6baed6' : // ฟ้า
+             chance > 0  ? '#c6dbef' : // ฟ้าอ่อน
+                           '#f7fbff';  // ฟ้าจางมาก
+    }
+
+    // 6. ฟังก์ชันกำหนด Style ของโซนพื้นที่
+    function styleZone(feature) {
+      return {
+        fillColor: getRainColor(feature.properties.rain_chance),
+        weight: 1.5,
+        opacity: 1,
+        color: '#1a4971', // สีเส้นขอบโซน
+        dashArray: '2',
+        fillOpacity: 0.65 // ความโปร่งใสของ Overlay
+      };
+    }
+
+    // 7. ตัวอย่างข้อมูล GeoJSON จำลองโซนพื้นที่ในเขตเมืองขอนแก่น
+    const khonkaenRainData = {
+      "type": "FeatureCollection",
+      "features": [
+        {
+          "type": "Feature",
+          "properties": { "name": "โซนในเมือง (บึงแก่นนคร)", "rain_chance": 85 },
+          "geometry": {
+            "type": "Polygon",
+            "coordinates": [[[102.81, 16.41], [102.86, 16.41], [102.86, 16.45], [102.81, 16.45], [102.81, 16.41]]]
+          }
+        },
+        {
+          "type": "Feature",
+          "properties": { "name": "โซนศิลา / มข.", "rain_chance": 65 },
+          "geometry": {
+            "type": "Polygon",
+            "coordinates": [[[102.80, 16.45], [102.86, 16.45], [102.86, 16.50], [102.80, 16.50], [102.80, 16.45]]]
+          }
+        },
+        {
+          "type": "Feature",
+          "properties": { "name": "โซนบ้านเป็ด / มะลิวัลย์", "rain_chance": 35 },
+          "geometry": {
+            "type": "Polygon",
+            "coordinates": [[[102.75, 16.40], [102.81, 16.40], [102.81, 16.46], [102.75, 16.46], [102.75, 16.40]]]
+          }
+        },
+        {
+          "type": "Feature",
+          "properties": { "name": "โซนพระลับ / เลี่ยงเมืองตะวันออก", "rain_chance": 15 },
+          "geometry": {
+            "type": "Polygon",
+            "coordinates": [[[102.86, 16.38], [102.92, 16.38], [102.92, 16.44], [102.86, 16.44], [102.86, 16.38]]]
+          }
+        }
+      ]
+    };
+
+    // 8. แสดงผล Overlay บนแผนที่
+    const geojsonLayer = L.geoJSON(khonkaenRainData, {
+      style: styleZone,
+      onEachFeature: function (feature, layer) {
+        // แสดง Tooltip บอกชื่อโซน และ % ฝนเมื่อ Hover
+        layer.bindTooltip(
+          `<strong>${feature.properties.name}</strong><br>โอกาสเกิดฝน: <strong>${feature.properties.rain_chance}%</strong>`,
+          { permanent: false, direction: "center" }
+        );
+
+        // Effect ไฮไลต์เมื่อเอามือถือแตะหรือเอาเมาส์ชี้
+        layer.on({
+          mouseover: (e) => {
+            const l = e.target;
+            l.setStyle({ weight: 3, color: '#000', fillOpacity: 0.85 });
+            l.bringToFront();
+          },
+          mouseout: (e) => {
+            geojsonLayer.resetStyle(e.target);
+          }
+        });
+      }
+    }).addTo(map);
+
+    // 9. สร้างกล่องคำอธิบายสัญลักษณ์ (Legend) ไว้มุมขวาใต้แผนที่
+    const legend = L.control({ position: 'bottomright' });
+    legend.onAdd = function () {
+      const div = L.DomUtil.create('div', 'legend');
+      const grades = [0, 20, 40, 60, 80];
+      div.innerHTML = '<h4>โอกาสเกิดฝน (%)</h4>';
+
+      for (let i = 0; i < grades.length; i++) {
+        div.innerHTML +=
+          '<i style="background:' + getRainColor(grades[i] + 1) + '"></i> ' +
+          grades[i] + (grades[i + 1] ? '&ndash;' + grades[i + 1] + '%<br>' : '% ขึ้นไป');
+      }
+      return div;
+    };
+    legend.addTo(map);
+  </script>
+</body>
+</html>
