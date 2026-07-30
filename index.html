@@ -3,15 +3,21 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>8-Bit Khon Kaen Rain Grid Radar</title>
+  <title>KK-RAIN-GRID: แผนที่คาดการณ์ฝนตก 8-Bit เมืองขอนแก่น</title>
   
   <!-- Leaflet CSS -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-  <!-- Google Font ฟอนต์สไตล์ 8-bit / Pixel -->
+  <!-- Google Fonts: ฟอนต์สไตล์ 8-Bit (Press Start 2P) และ Kanit -->
   <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Kanit:wght@300;400;600&display=swap" rel="stylesheet">
 
   <style>
-    body, html { margin: 0; padding: 0; height: 100%; font-family: 'Kanit', sans-serif; background: #111; }
+    body, html { 
+      margin: 0; 
+      padding: 0; 
+      height: 100%; 
+      font-family: 'Kanit', sans-serif; 
+      background: #0a0f1d; 
+    }
     #map { height: 100vh; width: 100%; }
 
     /* HUD คอนโทรลสไตล์ 8-Bit Retro Game */
@@ -20,13 +26,14 @@
       top: 15px;
       left: 15px;
       z-index: 1000;
-      background: rgba(10, 15, 30, 0.92);
+      background: rgba(10, 15, 30, 0.93);
       border: 3px solid #00f0ff;
       box-shadow: 0 0 15px rgba(0, 240, 255, 0.4);
       color: #fff;
       padding: 15px;
-      border-radius: 4px;
-      max-width: 320px;
+      border-radius: 6px;
+      width: 320px;
+      max-width: calc(100vw - 60px);
     }
 
     .retro-title {
@@ -37,40 +44,85 @@
       text-transform: uppercase;
       letter-spacing: 1px;
       line-height: 1.4;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
     }
+
+    /* การ์ดแสดงสถานะตำแหน่งผู้ใช้ */
+    .user-status-card {
+      background: rgba(255, 0, 127, 0.15);
+      border: 1px dashed #ff007f;
+      border-radius: 4px;
+      padding: 8px 10px;
+      margin-bottom: 12px;
+      font-size: 13px;
+    }
+    .user-status-card strong { color: #ff007f; }
 
     .time-display {
       font-size: 16px;
       font-weight: 600;
-      color: #ff007f;
-      margin-bottom: 8px;
+      color: #00f0ff;
+      margin-bottom: 4px;
     }
 
     .rain-stat {
       font-size: 13px;
       color: #a6f0ff;
-      margin-bottom: 12px;
+      margin-bottom: 10px;
     }
 
-    /* Slider และปุ่มกด */
+    /* ปุ่มกดและ Slider */
     input[type=range] {
       width: 100%;
       accent-color: #00f0ff;
       cursor: pointer;
+      margin-bottom: 8px;
     }
 
-    .btn-play {
+    .btn-group {
+      display: flex;
+      gap: 6px;
+      margin-top: 8px;
+      flex-wrap: wrap;
+    }
+
+    .btn-retro {
       background: #00f0ff;
       color: #000;
       border: none;
-      padding: 6px 12px;
-      font-family: 'Press Start 2P', monospace;
-      font-size: 9px;
+      padding: 7px 10px;
+      font-weight: 600;
+      font-size: 12px;
       cursor: pointer;
-      margin-top: 8px;
-      border-radius: 2px;
+      border-radius: 3px;
+      transition: all 0.2s;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
     }
-    .btn-play:hover { background: #ff007f; color: #fff; }
+    .btn-retro:hover { background: #ff007f; color: #fff; }
+    .btn-gps { background: #ff007f; color: #fff; }
+    .btn-gps:hover { background: #00f0ff; color: #000; }
+
+    /* ปุ่มทางลัด Preset เมืองขอนแก่น */
+    .presets-container {
+      margin-top: 10px;
+      padding-top: 8px;
+      border-top: 1px solid rgba(255,255,255,0.15);
+    }
+    .preset-title { font-size: 11px; color: #aaa; margin-bottom: 5px; }
+    .btn-preset {
+      background: rgba(255,255,255,0.1);
+      color: #fff;
+      border: 1px solid #00f0ff;
+      padding: 3px 7px;
+      font-size: 11px;
+      cursor: pointer;
+      border-radius: 3px;
+    }
+    .btn-preset:hover { background: #00f0ff; color: #000; }
 
     /* Legend สัญลักษณ์ตาราง 8-Bit */
     .legend-8bit {
@@ -78,11 +130,12 @@
       bottom: 20px;
       right: 20px;
       z-index: 1000;
-      background: rgba(10, 15, 30, 0.9);
+      background: rgba(10, 15, 30, 0.92);
       border: 2px solid #555;
       padding: 10px;
       color: #fff;
       font-size: 11px;
+      border-radius: 4px;
     }
     .legend-scale { display: flex; gap: 3px; margin-top: 5px; }
     .color-block { width: 18px; height: 18px; border: 1px solid rgba(255,255,255,0.2); }
@@ -92,23 +145,46 @@
 
   <!-- แผงควบคุมสไตล์ 8-Bit HUD -->
   <div class="retro-hud">
-    <div class="retro-title">KK-RAIN-GRID v1.0</div>
+    <div class="retro-title">
+      <span>KK-RAIN-GRID</span>
+      <span style="font-size:8px; color:#ff007f;">v2.0 GPS</span>
+    </div>
+
+    <!-- การ์ดบอกสถานะจุดที่ผู้ใช้อยู่ -->
+    <div class="user-status-card" id="userStatusCard">
+      📍 <b>สถานะตำแหน่ง:</b> กดปุ่ม GPS เพื่อตรวจสอบโอกาสฝนตก ณ จุดที่คุณอยู่
+    </div>
+
     <div class="time-display" id="timeLabel">กำลังโหลดข้อมูล...</div>
-    <div class="rain-stat" id="rainStat">โอกาสเกิดฝนเฉลี่ย: --%</div>
+    <div class="rain-stat" id="rainStat">โอกาสเกิดฝนเฉลี่ยเมือง: --%</div>
     
-    <label style="font-size:11px; color:#aaa;">เวลาพยากรณ์ (24 ชม. ข้างหน้า):</label>
+    <label style="font-size:11px; color:#aaa;">เลื่อนเวลาดูพยากรณ์ (24 ชม.):</label>
     <input type="range" id="timeSlider" min="0" max="23" value="0" disabled>
     
-    <button class="btn-play" id="playBtn">▶ AUTO PLAY</button>
+    <div class="btn-group">
+      <button class="btn-retro btn-gps" onclick="locateUser()">📍 ดึง GPS ของฉัน</button>
+      <button class="btn-retro" id="playBtn">▶ AUTO PLAY</button>
+    </div>
+
+    <!-- ปุ่มทางลัดจุดสำคัญขอนแก่น -->
+    <div class="presets-container">
+      <div class="preset-title">วาร์ปไปจุดสำคัญ:</div>
+      <div class="btn-group">
+        <button class="btn-preset" onclick="flyToLandmark(16.4720, 102.8230, 'มข.')">🎓 มข.</button>
+        <button class="btn-preset" onclick="flyToLandmark(16.4322, 102.8280, 'เซ็นทรัล')">🛍️ เซ็นทรัล</button>
+        <button class="btn-preset" onclick="flyToLandmark(16.4150, 102.8350, 'บึงแก่นนคร')">🏞️ บึงแก่นนคร</button>
+        <button class="btn-preset" onclick="flyToLandmark(16.4650, 102.7840, 'สนามบิน')">✈️ สนามบิน</button>
+      </div>
+    </div>
   </div>
 
   <div id="map"></div>
 
   <!-- Legend แสดงเฉดสี Pixel -->
   <div class="legend-8bit">
-    <div style="font-size:10px; font-family:'Press Start 2P'; margin-bottom:5px;">RAIN PROB (%)</div>
+    <div style="font-size:9px; font-family:'Press Start 2P'; margin-bottom:5px;">RAIN PROB (%)</div>
     <div class="legend-scale">
-      <div class="color-block" style="background:rgba(0, 240, 255, 0.15);" title="0-10%"></div>
+      <div class="color-block" style="background:rgba(0, 240, 255, 0.08);" title="0-10%"></div>
       <div class="color-block" style="background:#00d2ff;" title="10-30%"></div>
       <div class="color-block" style="background:#0066ff;" title="30-50%"></div>
       <div class="color-block" style="background:#0000cc;" title="50-70%"></div>
@@ -121,16 +197,16 @@
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
   <script>
-    // 1. สร้างแผนที่ตั้งศูนย์กลางที่ขอนแก่น (โทน Dark Theme เพื่อเน้นความโดดเด่นของสี 8-Bit Grid)
+    // 1. สร้างแผนที่ตั้งศูนย์กลางที่ขอนแก่น
     const map = L.map('map').setView([16.4322, 102.8236], 13);
 
-    // ใช้ CartoDB Dark Matter Base Map เพื่อให้ฟีลเหมือนจอเรดาร์เรโทร
+    // ใช้ CartoDB Dark Matter Base Map เพื่อดึงความโดดเด่นของสี Grid 8-Bit
     L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
       maxZoom: 18,
       attribution: '&copy; OpenStreetMap & CartoDB'
     }).addTo(map);
 
-    // 2. กำหนดขอบเขตพื้นที่ตาราง Grid (ซอยย่อย 25x25 = 625 พิกเซลรอบตัวเมือง)
+    // 2. กำหนดขอบเขตพื้นที่ตาราง Grid (25x25 = 625 พิกเซล)
     const minLat = 16.36, maxLat = 16.50;
     const minLon = 102.75, maxLon = 102.90;
     const ROWS = 25;
@@ -139,20 +215,25 @@
     const dLat = (maxLat - minLat) / ROWS;
     const dLon = (maxLon - minLon) / COLS;
 
-    let gridPixels = []; // เก็บออบเจกต์ตารางสี่เหลี่ยม Leaflet Rectangles
+    let gridPixels = []; 
     let forecastData = null;
     let currentHourIndex = 0;
     let isPlaying = false;
     let playInterval = null;
+    
+    // ตัวแปรสำหรับเก็บตำแหน่ง GPS ของผู้ใช้
+    let userLocation = null;
+    let userMarker = null;
+    let highlightedUserPixel = null;
 
     // 3. ฟังก์ชันแปลง % ฝนเป็นสีสไตล์ 8-Bit Retro Neon
     function get8BitColor(prob) {
-      if (prob < 10) return 'rgba(0, 240, 255, 0.08)'; // แทบไม่มีฝน
-      if (prob < 30) return '#00d2ff'; // ฟ้าอ่อน
-      if (prob < 50) return '#0066ff'; // น้ำเงินสด
-      if (prob < 70) return '#0000cc'; // น้ำเงินเข้ม
-      if (prob < 90) return '#9900ff'; // ม่วงนีออน
-      return '#ff007f';               // ชมพูพิกเซล (ฝนตกหนักจัด)
+      if (prob < 10) return 'rgba(0, 240, 255, 0.08)'; 
+      if (prob < 30) return '#00d2ff'; 
+      if (prob < 50) return '#0066ff'; 
+      if (prob < 70) return '#0000cc'; 
+      if (prob < 90) return '#9900ff'; 
+      return '#ff007f';               
     }
 
     // 4. สร้างโครงตาราง 8-Bit Pixel บนแผนที่
@@ -167,19 +248,18 @@
           const bounds = [[south, west], [north, east]];
           
           const rect = L.rectangle(bounds, {
-            color: 'rgba(0, 250, 255, 0.25)', // เส้นขอบพิกเซล 8-Bit
+            color: 'rgba(0, 250, 255, 0.2)', // เส้นขอบพิกเซล
             weight: 0.5,
             fillColor: 'transparent',
             fillOpacity: 0.75
           }).addTo(map);
 
-          // เก็บพิกัดและดักจับ Event Tooltip
           gridPixels.push({ rect, r, c });
         }
       }
     }
 
-    // 5. ดึงข้อมูลพยากรณ์ฝนจริงรายชั่วโมงจาก Open-Meteo API
+    // 5. ดึงข้อมูลพยากรณ์ฝนจริงรายชั่วโมงจาก Open-Meteo API (ไม่ต้องใช้ Key)
     async function fetchRainForecast() {
       try {
         const url = `https://api.open-meteo.com/v1/forecast?latitude=16.4322&longitude=102.8236&hourly=precipitation_probability,precipitation&timezone=Asia%2FBangkok`;
@@ -187,8 +267,6 @@
         const data = await res.json();
         
         forecastData = data.hourly;
-        
-        // ปลดล็อก Slider
         document.getElementById('timeSlider').disabled = false;
         updateDisplay(0);
       } catch (err) {
@@ -197,7 +275,7 @@
       }
     }
 
-    // 6. อัปเดตตาราง Grid ตามช่วงเวลาที่เลือก
+    // 6. อัปเดตตาราง Grid และการ์ดสรุปผลตามเวลาที่เลือก
     function updateDisplay(hourIdx) {
       if (!forecastData) return;
 
@@ -206,34 +284,113 @@
       const baseProb = forecastData.precipitation_probability[hourIdx] || 0;
       const basePrecip = forecastData.precipitation[hourIdx] || 0;
 
-      // แปลง ISO Date เป็นเวลาอ่านง่าย
       const dateObj = new Date(timeStr);
       const formattedTime = dateObj.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) + ' น.';
       const formattedDate = dateObj.toLocaleDateString('th-TH', { day: 'numeric', month: 'short' });
 
       document.getElementById('timeLabel').innerText = `${formattedDate} - ${formattedTime}`;
-      document.getElementById('rainStat').innerText = `โอกาสเกิดฝนเฉลี่ย: ${baseProb}% (${basePrecip} mm)`;
+      document.getElementById('rainStat').innerText = `โอกาสฝนเฉลี่ยทั้งเมือง: ${baseProb}% (${basePrecip} mm)`;
 
-      // อัปเดตสีแต่ละช่องใน Grid (พร้อมใส่ Wave Simulation ให้ดูเคลื่อนไหวแบบเรดาร์จริง)
+      // อัปเดตสีพิกเซลตารางทั้งหมด
       gridPixels.forEach(pixel => {
-        // ใช้ฟังก์ชันคลื่นวิทยาศาสตร์จำลองการเคลื่อนที่ของกลุ่มเมฆฝนผ่านพิกเซลตาราง (SW -> NE)
+        // คลื่นคลุมจำลองทิศทางเมฆฝนพัดผ่านเมือง
         const spatialWave = Math.sin((pixel.r * 0.3) + (pixel.c * 0.3) - (hourIdx * 0.8)) * 18;
         let cellProb = Math.min(100, Math.max(0, Math.round(baseProb + spatialWave)));
-
-        if (baseProb === 0) cellProb = 0; // ถ้าพยากรณ์บอกไม่มีฝน ให้คงไว้ที่ 0%
+        if (baseProb === 0) cellProb = 0;
 
         const color = get8BitColor(cellProb);
-        pixel.rect.setStyle({ fillColor: color });
+        
+        // ถ้าเป็นพิกเซลที่ผู้ใช้อยู่ ให้เน้นขอบสีเหลืองหนาพิเศษ
+        const isUserCell = (highlightedUserPixel && highlightedUserPixel.r === pixel.r && highlightedUserPixel.c === pixel.c);
+        
+        pixel.rect.setStyle({
+          fillColor: color,
+          color: isUserCell ? '#ffff00' : 'rgba(0, 250, 255, 0.2)',
+          weight: isUserCell ? 3 : 0.5
+        });
 
-        // Tooltip แสดงรายละเอียดเมื่อชี้แต่ละ Pixel
+        // อัปเดต Tooltip ชี้พิกเซล
         pixel.rect.bindTooltip(
           `<b>[Pixel Grid ${pixel.r},${pixel.c}]</b><br>โอกาสฝนตก: <b>${cellProb}%</b>`,
           { sticky: true }
         );
+
+        // ถ้าพิกเซลนี้ตรงกับตำแหน่งผู้ใช้ ให้ทำการอัปเดตการ์ดสถานะผู้ใช้ด้วย
+        if (isUserCell) {
+          updateUserStatusCard(cellProb, formattedTime);
+        }
       });
     }
 
-    // 7. Event Listeners สำหรับ UI
+    // 7. ระบบดึงตำแหน่ง GPS ของผู้ใช้
+    function locateUser() {
+      if (!navigator.geolocation) {
+        alert("เบราว์เซอร์ของคุณไม่รองรับการระบุตำแหน่ง GPS");
+        return;
+      }
+
+      document.getElementById('userStatusCard').innerHTML = "⏳ กำลังค้นหาตำแหน่ง GPS ของคุณ...";
+
+      navigator.geolocation.getCurrentPosition((position) => {
+        const userLat = position.coords.latitude;
+        const userLng = position.coords.longitude;
+        userLocation = { lat: userLat, lng: userLng };
+
+        // เลื่อนแผนที่ไปหาตำแหน่งผู้ใช้
+        map.flyTo([userLat, userLng], 15);
+
+        // สร้างหรือย้ายหมุด 8-Bit Marker
+        if (userMarker) map.removeLayer(userMarker);
+        
+        userMarker = L.circleMarker([userLat, userLng], {
+          radius: 9,
+          fillColor: '#ff007f',
+          color: '#ffffff',
+          weight: 3,
+          opacity: 1,
+          fillOpacity: 0.9
+        }).addTo(map).bindPopup("<b>📍 คุณอยู่ที่นี่</b>").openPopup();
+
+        // คำนวณหาช่อง Grid ที่ผู้ใช้อยู่
+        const r = Math.floor((userLat - minLat) / dLat);
+        const c = Math.floor((userLng - minLon) / dLon);
+
+        if (r >= 0 && r < ROWS && c >= 0 && c < COLS) {
+          highlightedUserPixel = { r, c };
+          updateDisplay(currentHourIndex); // สั่งวาดแผนที่ใหม่พร้อมไฮไลต์ช่องผู้ใช้
+        } else {
+          highlightedUserPixel = null;
+          document.getElementById('userStatusCard').innerHTML = 
+            `📍 <b>ตำแหน่งของคุณ:</b> อยู่นอกเขตตารางเมืองขอนแก่น`;
+        }
+      }, (err) => {
+        alert("ไม่สามารถดึงตำแหน่ง GPS ได้ กรุณาเปิดอนุญาตสิทธิ์ Location Service");
+        document.getElementById('userStatusCard').innerHTML = 
+          `📍 <b>ตำแหน่งของคุณ:</b> ไม่สามารถดึงข้อมูล GPS ได้`;
+      });
+    }
+
+    // 8. ฟังก์ชันอัปเดตการ์ดแจ้งเตือนฝน ณ จุดที่ผู้ใช้อยู่
+    function updateUserStatusCard(prob, timeStr) {
+      let advice = "แดดจ่ม/ปกติ";
+      if (prob > 70) advice = "☔ ฝนตกหนัก พกร่มด่วน!";
+      else if (prob > 40) advice = "🌦️ มีโอกาสฝนตก ละอองฝน";
+
+      document.getElementById('userStatusCard').innerHTML = 
+        `📍 <b>จุดที่คุณอยู่ (${timeStr}):</b><br>` +
+        `โอกาสฝนตก <strong>${prob}%</strong> &mdash; <span>${advice}</span>`;
+    }
+
+    // 9. ฟังก์ชันวาร์ปไปแลนด์มาร์กขอนแก่น
+    function flyToLandmark(lat, lng, name) {
+      map.flyTo([lat, lng], 15);
+      L.popup()
+        .setLatLng([lat, lng])
+        .setContent(`<b>📌 ${name}</b>`)
+        .openOn(map);
+    }
+
+    // 10. Event Listeners สำหรับ UI
     document.getElementById('timeSlider').addEventListener('input', (e) => {
       updateDisplay(parseInt(e.target.value));
     });
@@ -248,14 +405,14 @@
           let nextHour = (currentHourIndex + 1) % 24;
           document.getElementById('timeSlider').value = nextHour;
           updateDisplay(nextHour);
-        }, 1200); // เปลี่ยนเฟรมทุก 1.2 วินาที
+        }, 1200);
       } else {
         btn.innerText = "▶ AUTO PLAY";
         clearInterval(playInterval);
       }
     });
 
-    // เริ่มต้นทำงาน
+    // เริ่มต้นทำงานเมื่อโหลดหน้าเว็บ
     createGrid();
     fetchRainForecast();
   </script>
