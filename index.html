@@ -3,263 +3,271 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>KK-RAIN-GRID: แผนที่คาดการณ์ฝนตก 8-Bit เมืองขอนแก่น</title>
+  <title>ระบบติดตามฝนตก เมืองขอนแก่น</title>
   
   <!-- Leaflet CSS -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-  <!-- Google Fonts: ฟอนต์สไตล์ 8-Bit (Press Start 2P) และ Kanit -->
-  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Kanit:wght@300;400;600&display=swap" rel="stylesheet">
+  <!-- Google Font: Kanit (ทันสมัย อ่านง่าย) -->
+  <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600&display=swap" rel="stylesheet">
 
   <style>
+    * { box-sizing: border-box; }
     body, html { 
       margin: 0; 
       padding: 0; 
       height: 100%; 
       font-family: 'Kanit', sans-serif; 
-      background: #0a0f1d; 
+      color: #0f172a;
     }
-    #map { height: 100vh; width: 100%; }
+    #map { height: 100vh; width: 100%; z-index: 1; }
 
-    /* HUD คอนโทรลสไตล์ 8-Bit Retro Game */
-    .retro-hud {
+    /* การ์ดควบคุมสไตล์ Glassmorphism (กระจกใส ทันสมัย) */
+    .dashboard-card {
       position: absolute;
-      top: 15px;
-      left: 15px;
+      top: 16px;
+      left: 16px;
       z-index: 1000;
-      background: rgba(10, 15, 30, 0.93);
-      border: 3px solid #00f0ff;
-      box-shadow: 0 0 15px rgba(0, 240, 255, 0.4);
-      color: #fff;
-      padding: 15px;
-      border-radius: 6px;
-      width: 320px;
-      max-width: calc(100vw - 60px);
+      background: rgba(255, 255, 255, 0.88);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.6);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12);
+      border-radius: 20px;
+      padding: 20px;
+      width: 340px;
+      max-width: calc(100vw - 32px);
     }
 
-    .retro-title {
-      font-family: 'Press Start 2P', monospace;
-      font-size: 11px;
-      color: #00f0ff;
-      margin-bottom: 10px;
-      text-transform: uppercase;
-      letter-spacing: 1px;
-      line-height: 1.4;
+    .app-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
+      margin-bottom: 14px;
     }
-
-    /* การ์ดแสดงสถานะตำแหน่งผู้ใช้ */
-    .user-status-card {
-      background: rgba(255, 0, 127, 0.15);
-      border: 1px dashed #ff007f;
-      border-radius: 4px;
-      padding: 8px 10px;
-      margin-bottom: 12px;
-      font-size: 13px;
-    }
-    .user-status-card strong { color: #ff007f; }
-
-    .time-display {
-      font-size: 16px;
+    .app-title {
       font-weight: 600;
-      color: #00f0ff;
-      margin-bottom: 4px;
+      font-size: 16px;
+      color: #0f172a;
+      display: flex;
+      align-items: center;
+      gap: 6px;
     }
 
-    .rain-stat {
-      font-size: 13px;
-      color: #a6f0ff;
-      margin-bottom: 10px;
+    /* กล่องสรุปสถานะจุดที่ยืนอยู่ (เน้นความเด่น อ่านง่าย) */
+    .user-status-banner {
+      background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+      border: 1px solid #bfdbfe;
+      border-radius: 14px;
+      padding: 12px 14px;
+      margin-bottom: 14px;
+    }
+    .user-status-title {
+      font-size: 12px;
+      color: #3b82f6;
+      font-weight: 500;
+      margin-bottom: 2px;
+    }
+    .user-status-value {
+      font-size: 15px;
+      font-weight: 600;
+      color: #1e3a8a;
     }
 
-    /* ปุ่มกดและ Slider */
+    .time-label {
+      font-size: 14px;
+      font-weight: 500;
+      color: #475569;
+      margin-bottom: 6px;
+    }
+
+    /* Slider และ Controls */
     input[type=range] {
       width: 100%;
-      accent-color: #00f0ff;
+      height: 6px;
+      background: #e2e8f0;
+      border-radius: 3px;
+      accent-color: #2563eb;
       cursor: pointer;
+      margin-bottom: 12px;
+    }
+
+    .btn-row {
+      display: flex;
+      gap: 8px;
+    }
+
+    .btn-action {
+      flex: 1;
+      padding: 9px 12px;
+      border: none;
+      border-radius: 12px;
+      font-family: 'Kanit', sans-serif;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: all 0.2s;
+    }
+    .btn-gps {
+      background: #2563eb;
+      color: #ffffff;
+      box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
+    }
+    .btn-gps:hover { background: #1d4ed8; }
+    
+    .btn-play {
+      background: #f1f5f9;
+      color: #334155;
+      border: 1px solid #cbd5e1;
+    }
+    .btn-play:hover { background: #e2e8f0; }
+
+    /* ปุ่มทางลัดสถานที่ */
+    .landmarks-group {
+      margin-top: 14px;
+      padding-top: 12px;
+      border-top: 1px solid #e2e8f0;
+    }
+    .landmarks-title {
+      font-size: 12px;
+      color: #64748b;
       margin-bottom: 8px;
     }
-
-    .btn-group {
+    .chips-wrapper {
       display: flex;
       gap: 6px;
-      margin-top: 8px;
       flex-wrap: wrap;
     }
-
-    .btn-retro {
-      background: #00f0ff;
-      color: #000;
-      border: none;
-      padding: 7px 10px;
-      font-weight: 600;
+    .chip {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 20px;
+      padding: 4px 10px;
       font-size: 12px;
+      color: #475569;
       cursor: pointer;
-      border-radius: 3px;
       transition: all 0.2s;
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
     }
-    .btn-retro:hover { background: #ff007f; color: #fff; }
-    .btn-gps { background: #ff007f; color: #fff; }
-    .btn-gps:hover { background: #00f0ff; color: #000; }
+    .chip:hover {
+      background: #eff6ff;
+      border-color: #93c5fd;
+      color: #1d4ed8;
+    }
 
-    /* ปุ่มทางลัด Preset เมืองขอนแก่น */
-    .presets-container {
-      margin-top: 10px;
-      padding-top: 8px;
-      border-top: 1px solid rgba(255,255,255,0.15);
-    }
-    .preset-title { font-size: 11px; color: #aaa; margin-bottom: 5px; }
-    .btn-preset {
-      background: rgba(255,255,255,0.1);
-      color: #fff;
-      border: 1px solid #00f0ff;
-      padding: 3px 7px;
-      font-size: 11px;
-      cursor: pointer;
-      border-radius: 3px;
-    }
-    .btn-preset:hover { background: #00f0ff; color: #000; }
-
-    /* Legend สัญลักษณ์ตาราง 8-Bit */
-    .legend-8bit {
+    /* แถบอธิบายความเข้มฝน (Legend) */
+    .legend-card {
       position: absolute;
-      bottom: 20px;
-      right: 20px;
+      bottom: 24px;
+      right: 24px;
       z-index: 1000;
-      background: rgba(10, 15, 30, 0.92);
-      border: 2px solid #555;
-      padding: 10px;
-      color: #fff;
+      background: rgba(255, 255, 255, 0.9);
+      backdrop-filter: blur(8px);
+      padding: 10px 14px;
+      border-radius: 14px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.08);
       font-size: 11px;
-      border-radius: 4px;
+      color: #475569;
+      border: 1px solid rgba(255,255,255,0.8);
     }
-    .legend-scale { display: flex; gap: 3px; margin-top: 5px; }
-    .color-block { width: 18px; height: 18px; border: 1px solid rgba(255,255,255,0.2); }
+    .legend-bar {
+      height: 8px;
+      width: 140px;
+      border-radius: 4px;
+      background: linear-gradient(to right, #60a5fa, #2563eb, #7c3aed, #dc2626);
+      margin-top: 4px;
+    }
+    .legend-labels {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 3px;
+      font-size: 10px;
+      color: #94a3b8;
+    }
   </style>
 </head>
 <body>
 
-  <!-- แผงควบคุมสไตล์ 8-Bit HUD -->
-  <div class="retro-hud">
-    <div class="retro-title">
-      <span>KK-RAIN-GRID</span>
-      <span style="font-size:8px; color:#ff007f;">v2.0 GPS</span>
+  <!-- แผงควบคุม Glassmorphism UI -->
+  <div class="dashboard-card">
+    <div class="app-header">
+      <div class="app-title">🌧️ พยากรณ์ฝนเมืองขอนแก่น</div>
     </div>
 
-    <!-- การ์ดบอกสถานะจุดที่ผู้ใช้อยู่ -->
-    <div class="user-status-card" id="userStatusCard">
-      📍 <b>สถานะตำแหน่ง:</b> กดปุ่ม GPS เพื่อตรวจสอบโอกาสฝนตก ณ จุดที่คุณอยู่
+    <!-- การ์ดแจ้งสถานะจุดที่ผู้ใช้อยู่ -->
+    <div class="user-status-banner" id="userBanner">
+      <div class="user-status-title">📍 ตำแหน่งของคุณ</div>
+      <div class="user-status-value" id="userStatusText">กดปุ่ม GPS ด้านล่างเพื่อตรวจสอบ</div>
     </div>
 
-    <div class="time-display" id="timeLabel">กำลังโหลดข้อมูล...</div>
-    <div class="rain-stat" id="rainStat">โอกาสเกิดฝนเฉลี่ยเมือง: --%</div>
-    
-    <label style="font-size:11px; color:#aaa;">เลื่อนเวลาดูพยากรณ์ (24 ชม.):</label>
+    <div class="time-label" id="timeLabel">กำลังดึงข้อมูลสภาพอากาศ...</div>
     <input type="range" id="timeSlider" min="0" max="23" value="0" disabled>
-    
-    <div class="btn-group">
-      <button class="btn-retro btn-gps" onclick="locateUser()">📍 ดึง GPS ของฉัน</button>
-      <button class="btn-retro" id="playBtn">▶ AUTO PLAY</button>
+
+    <div class="btn-row">
+      <button class="btn-action btn-gps" onclick="locateUser()">📍 เช็กตำแหน่งฉัน</button>
+      <button class="btn-action btn-play" id="playBtn">▶ เล่นแอนิเมชัน</button>
     </div>
 
-    <!-- ปุ่มทางลัดจุดสำคัญขอนแก่น -->
-    <div class="presets-container">
-      <div class="preset-title">วาร์ปไปจุดสำคัญ:</div>
-      <div class="btn-group">
-        <button class="btn-preset" onclick="flyToLandmark(16.4720, 102.8230, 'มข.')">🎓 มข.</button>
-        <button class="btn-preset" onclick="flyToLandmark(16.4322, 102.8280, 'เซ็นทรัล')">🛍️ เซ็นทรัล</button>
-        <button class="btn-preset" onclick="flyToLandmark(16.4150, 102.8350, 'บึงแก่นนคร')">🏞️ บึงแก่นนคร</button>
-        <button class="btn-preset" onclick="flyToLandmark(16.4650, 102.7840, 'สนามบิน')">✈️ สนามบิน</button>
+    <!-- ปุ่มทางลัดไปจุดสำคัญ -->
+    <div class="landmarks-group">
+      <div class="landmarks-title">ดูพื้นที่สำคัญในเมือง:</div>
+      <div class="chips-wrapper">
+        <div class="chip" onclick="flyToLandmark(16.4720, 102.8230, 'ม.ขอนแก่น')">🎓 มข.</div>
+        <div class="chip" onclick="flyToLandmark(16.4322, 102.8280, 'เซ็นทรัล ขอนแก่น')">🛍️ เซ็นทรัล</div>
+        <div class="chip" onclick="flyToLandmark(16.4150, 102.8350, 'บึงแก่นนคร')">🏞️ บึงแก่นนคร</div>
+        <div class="chip" onclick="flyToLandmark(16.4650, 102.7840, 'สนามบิน')">✈️ สนามบิน</div>
       </div>
     </div>
   </div>
 
   <div id="map"></div>
 
-  <!-- Legend แสดงเฉดสี Pixel -->
-  <div class="legend-8bit">
-    <div style="font-size:9px; font-family:'Press Start 2P'; margin-bottom:5px;">RAIN PROB (%)</div>
-    <div class="legend-scale">
-      <div class="color-block" style="background:rgba(0, 240, 255, 0.08);" title="0-10%"></div>
-      <div class="color-block" style="background:#00d2ff;" title="10-30%"></div>
-      <div class="color-block" style="background:#0066ff;" title="30-50%"></div>
-      <div class="color-block" style="background:#0000cc;" title="50-70%"></div>
-      <div class="color-block" style="background:#9900ff;" title="70-90%"></div>
-      <div class="color-block" style="background:#ff007f;" title="90-100%"></div>
+  <!-- Legend แสดงเฉดสีเรดาร์ -->
+  <div class="legend-card">
+    <div>โอกาสเกิดฝนตก (%)</div>
+    <div class="legend-bar"></div>
+    <div class="legend-labels">
+      <span>20%</span>
+      <span>50%</span>
+      <span>80%</span>
+      <span>100%</span>
     </div>
   </div>
 
-  <!-- Leaflet JS -->
+  <!-- Leaflet JS & Leaflet Heatmap Plugin -->
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
 
   <script>
-    // 1. สร้างแผนที่ตั้งศูนย์กลางที่ขอนแก่น
-    const map = L.map('map').setView([16.4322, 102.8236], 13);
+    // 1. สร้างแผนที่ตั้งศูนย์กลางขอนแก่น (ใช้โทนแผนที่ CartoDB Voyager สบายตา ทันสมัย)
+    const map = L.map('map', { zoomControl: false }).setView([16.4322, 102.8236], 13);
+    
+    // ย้าย Zoom Control ไปไว้มุมขวาบน เพื่อไม่ให้บังแผงควบคุม
+    L.control.zoom({ position: 'topright' }).addTo(map);
 
-    // ใช้ CartoDB Dark Matter Base Map เพื่อดึงความโดดเด่นของสี Grid 8-Bit
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
       maxZoom: 18,
       attribution: '&copy; OpenStreetMap & CartoDB'
     }).addTo(map);
 
-    // 2. กำหนดขอบเขตพื้นที่ตาราง Grid (25x25 = 625 พิกเซล)
+    // 2. สร้างโครงข่ายจุดความละเอียดสูงสำหรับทำ Smooth Heatmap
     const minLat = 16.36, maxLat = 16.50;
     const minLon = 102.75, maxLon = 102.90;
-    const ROWS = 25;
-    const COLS = 25;
-    
-    const dLat = (maxLat - minLat) / ROWS;
-    const dLon = (maxLon - minLon) / COLS;
+    const STEPS = 35; // ความละเอียดของเรดาร์
 
-    let gridPixels = []; 
+    const dLat = (maxLat - minLat) / STEPS;
+    const dLon = (maxLon - minLon) / STEPS;
+
+    let heatLayer = null;
     let forecastData = null;
     let currentHourIndex = 0;
     let isPlaying = false;
     let playInterval = null;
-    
-    // ตัวแปรสำหรับเก็บตำแหน่ง GPS ของผู้ใช้
     let userLocation = null;
     let userMarker = null;
-    let highlightedUserPixel = null;
 
-    // 3. ฟังก์ชันแปลง % ฝนเป็นสีสไตล์ 8-Bit Retro Neon
-    function get8BitColor(prob) {
-      if (prob < 10) return 'rgba(0, 240, 255, 0.08)'; 
-      if (prob < 30) return '#00d2ff'; 
-      if (prob < 50) return '#0066ff'; 
-      if (prob < 70) return '#0000cc'; 
-      if (prob < 90) return '#9900ff'; 
-      return '#ff007f';               
-    }
-
-    // 4. สร้างโครงตาราง 8-Bit Pixel บนแผนที่
-    function createGrid() {
-      for (let r = 0; r < ROWS; r++) {
-        for (let c = 0; c < COLS; c++) {
-          const south = minLat + r * dLat;
-          const north = south + dLat;
-          const west = minLon + c * dLon;
-          const east = west + dLon;
-
-          const bounds = [[south, west], [north, east]];
-          
-          const rect = L.rectangle(bounds, {
-            color: 'rgba(0, 250, 255, 0.2)', // เส้นขอบพิกเซล
-            weight: 0.5,
-            fillColor: 'transparent',
-            fillOpacity: 0.75
-          }).addTo(map);
-
-          gridPixels.push({ rect, r, c });
-        }
-      }
-    }
-
-    // 5. ดึงข้อมูลพยากรณ์ฝนจริงรายชั่วโมงจาก Open-Meteo API (ไม่ต้องใช้ Key)
+    // 3. ดึงข้อมูลพยากรณ์ฝนจริงรายชั่วโมงจาก Open-Meteo API
     async function fetchRainForecast() {
       try {
         const url = `https://api.open-meteo.com/v1/forecast?latitude=16.4322&longitude=102.8236&hourly=precipitation_probability,precipitation&timezone=Asia%2FBangkok`;
@@ -275,122 +283,121 @@
       }
     }
 
-    // 6. อัปเดตตาราง Grid และการ์ดสรุปผลตามเวลาที่เลือก
+    // 4. คำนวณจุดและสร้าง Smooth Radar Layer
     function updateDisplay(hourIdx) {
       if (!forecastData) return;
 
       currentHourIndex = hourIdx;
       const timeStr = forecastData.time[hourIdx];
       const baseProb = forecastData.precipitation_probability[hourIdx] || 0;
-      const basePrecip = forecastData.precipitation[hourIdx] || 0;
 
       const dateObj = new Date(timeStr);
       const formattedTime = dateObj.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) + ' น.';
       const formattedDate = dateObj.toLocaleDateString('th-TH', { day: 'numeric', month: 'short' });
 
-      document.getElementById('timeLabel').innerText = `${formattedDate} - ${formattedTime}`;
-      document.getElementById('rainStat').innerText = `โอกาสฝนเฉลี่ยทั้งเมือง: ${baseProb}% (${basePrecip} mm)`;
+      document.getElementById('timeLabel').innerText = `🕒 พยากรณ์เวลา: ${formattedDate} (${formattedTime})`;
 
-      // อัปเดตสีพิกเซลตารางทั้งหมด
-      gridPixels.forEach(pixel => {
-        // คลื่นคลุมจำลองทิศทางเมฆฝนพัดผ่านเมือง
-        const spatialWave = Math.sin((pixel.r * 0.3) + (pixel.c * 0.3) - (hourIdx * 0.8)) * 18;
-        let cellProb = Math.min(100, Math.max(0, Math.round(baseProb + spatialWave)));
-        if (baseProb === 0) cellProb = 0;
+      // คำนวณความเข้มฝนเป็น Smooth Heatmap Points [Lat, Lng, Intensity]
+      const heatPoints = [];
+      let currentUserProb = baseProb;
 
-        const color = get8BitColor(cellProb);
-        
-        // ถ้าเป็นพิกเซลที่ผู้ใช้อยู่ ให้เน้นขอบสีเหลืองหนาพิเศษ
-        const isUserCell = (highlightedUserPixel && highlightedUserPixel.r === pixel.r && highlightedUserPixel.c === pixel.c);
-        
-        pixel.rect.setStyle({
-          fillColor: color,
-          color: isUserCell ? '#ffff00' : 'rgba(0, 250, 255, 0.2)',
-          weight: isUserCell ? 3 : 0.5
-        });
+      for (let r = 0; r <= STEPS; r++) {
+        for (let c = 0; c <= STEPS; c++) {
+          const lat = minLat + r * dLat;
+          const lon = minLon + c * dLon;
 
-        // อัปเดต Tooltip ชี้พิกเซล
-        pixel.rect.bindTooltip(
-          `<b>[Pixel Grid ${pixel.r},${pixel.c}]</b><br>โอกาสฝนตก: <b>${cellProb}%</b>`,
-          { sticky: true }
-        );
+          // แบบจำลองทิศทางคลื่นฝนพัดผ่านเมืองให้ดูสมจริง
+          const wave = Math.sin((r * 0.25) + (c * 0.25) - (hourIdx * 0.7)) * 25;
+          let intensity = Math.min(100, Math.max(0, baseProb + wave)) / 100;
 
-        // ถ้าพิกเซลนี้ตรงกับตำแหน่งผู้ใช้ ให้ทำการอัปเดตการ์ดสถานะผู้ใช้ด้วย
-        if (isUserCell) {
-          updateUserStatusCard(cellProb, formattedTime);
+          if (baseProb === 0) intensity = 0;
+
+          if (intensity > 0.1) {
+            heatPoints.push([lat, lon, intensity]);
+          }
+
+          // คำนวณฝน ณ จุดที่ผู้ใช้อยู่
+          if (userLocation && Math.abs(lat - userLocation.lat) < dLat && Math.abs(lon - userLocation.lng) < dLon) {
+            currentUserProb = Math.round(intensity * 100);
+          }
         }
-      });
+      }
+
+      // วาดชั้นเรดาร์ Smooth Heatmap ใหม่
+      if (heatLayer) map.removeLayer(heatLayer);
+
+      heatLayer = L.heatLayer(heatPoints, {
+        radius: 28,
+        blur: 20,
+        maxZoom: 15,
+        max: 1.0,
+        gradient: {
+          0.2: '#60a5fa', // ฟ้าอ่อน (ฝนละออง)
+          0.4: '#2563eb', // น้ำเงินสด (ฝนปานกลาง)
+          0.7: '#7c3aed', // ม่วง (ฝนตกหนัก)
+          1.0: '#dc2626'  // แดง (ฝนตกหนักมาก)
+        }
+      }).addTo(map);
+
+      // อัปเดตข้อมูลการ์ดแจ้งผู้ใช้
+      if (userLocation) {
+        updateUserBanner(currentUserProb, formattedTime);
+      }
     }
 
-    // 7. ระบบดึงตำแหน่ง GPS ของผู้ใช้
+    // 5. ระบบเช็กตำแหน่ง GPS
     function locateUser() {
       if (!navigator.geolocation) {
-        alert("เบราว์เซอร์ของคุณไม่รองรับการระบุตำแหน่ง GPS");
+        alert("เบราว์เซอร์ไม่รองรับ GPS");
         return;
       }
 
-      document.getElementById('userStatusCard').innerHTML = "⏳ กำลังค้นหาตำแหน่ง GPS ของคุณ...";
+      document.getElementById('userStatusText').innerText = "⏳ กำลังค้นหาตำแหน่ง...";
 
-      navigator.geolocation.getCurrentPosition((position) => {
-        const userLat = position.coords.latitude;
-        const userLng = position.coords.longitude;
-        userLocation = { lat: userLat, lng: userLng };
+      navigator.geolocation.getCurrentPosition((pos) => {
+        const lat = pos.coords.latitude;
+        const lng = pos.coords.longitude;
+        userLocation = { lat, lng };
 
-        // เลื่อนแผนที่ไปหาตำแหน่งผู้ใช้
-        map.flyTo([userLat, userLng], 15);
+        map.flyTo([lat, lng], 14, { duration: 1.5 });
 
-        // สร้างหรือย้ายหมุด 8-Bit Marker
+        // สร้างหมุดระบุตำแหน่งสีน้ำเงินเนียนตา
         if (userMarker) map.removeLayer(userMarker);
         
-        userMarker = L.circleMarker([userLat, userLng], {
-          radius: 9,
-          fillColor: '#ff007f',
+        userMarker = L.circleMarker([lat, lng], {
+          radius: 8,
+          fillColor: '#2563eb',
           color: '#ffffff',
           weight: 3,
           opacity: 1,
-          fillOpacity: 0.9
-        }).addTo(map).bindPopup("<b>📍 คุณอยู่ที่นี่</b>").openPopup();
+          fillOpacity: 1
+        }).addTo(map).bindPopup("<b>📍 คุณอยู่ตรงนี้</b>").openPopup();
 
-        // คำนวณหาช่อง Grid ที่ผู้ใช้อยู่
-        const r = Math.floor((userLat - minLat) / dLat);
-        const c = Math.floor((userLng - minLon) / dLon);
-
-        if (r >= 0 && r < ROWS && c >= 0 && c < COLS) {
-          highlightedUserPixel = { r, c };
-          updateDisplay(currentHourIndex); // สั่งวาดแผนที่ใหม่พร้อมไฮไลต์ช่องผู้ใช้
-        } else {
-          highlightedUserPixel = null;
-          document.getElementById('userStatusCard').innerHTML = 
-            `📍 <b>ตำแหน่งของคุณ:</b> อยู่นอกเขตตารางเมืองขอนแก่น`;
-        }
-      }, (err) => {
-        alert("ไม่สามารถดึงตำแหน่ง GPS ได้ กรุณาเปิดอนุญาตสิทธิ์ Location Service");
-        document.getElementById('userStatusCard').innerHTML = 
-          `📍 <b>ตำแหน่งของคุณ:</b> ไม่สามารถดึงข้อมูล GPS ได้`;
+        updateDisplay(currentHourIndex);
+      }, () => {
+        document.getElementById('userStatusText').innerText = "ไม่สามารถดึงตำแหน่ง GPS ได้";
       });
     }
 
-    // 8. ฟังก์ชันอัปเดตการ์ดแจ้งเตือนฝน ณ จุดที่ผู้ใช้อยู่
-    function updateUserStatusCard(prob, timeStr) {
-      let advice = "แดดจ่ม/ปกติ";
-      if (prob > 70) advice = "☔ ฝนตกหนัก พกร่มด่วน!";
-      else if (prob > 40) advice = "🌦️ มีโอกาสฝนตก ละอองฝน";
-
-      document.getElementById('userStatusCard').innerHTML = 
-        `📍 <b>จุดที่คุณอยู่ (${timeStr}):</b><br>` +
-        `โอกาสฝนตก <strong>${prob}%</strong> &mdash; <span>${advice}</span>`;
+    // 6. อัปเดตข้อความบน Banner สรุปผล
+    function updateUserBanner(prob, timeStr) {
+      const banner = document.getElementById('userStatusText');
+      if (prob >= 70) {
+        banner.innerHTML = `โอกาสฝนตก <span style="color:#dc2626">${prob}%</span> &bull; ☔ พกร่มด่วน!`;
+      } else if (prob >= 40) {
+        banner.innerHTML = `โอกาสฝนตก <span style="color:#2563eb">${prob}%</span> &bull; 🌦️ อาจมีฝนบางแห่ง`;
+      } else {
+        banner.innerHTML = `โอกาสฝนตก <span style="color:#16a34a">${prob}%</span> &bull; ☀️ อากาศสดใส`;
+      }
     }
 
-    // 9. ฟังก์ชันวาร์ปไปแลนด์มาร์กขอนแก่น
+    // 7. ปุ่มทางลัดสถานที่
     function flyToLandmark(lat, lng, name) {
-      map.flyTo([lat, lng], 15);
-      L.popup()
-        .setLatLng([lat, lng])
-        .setContent(`<b>📌 ${name}</b>`)
-        .openOn(map);
+      map.flyTo([lat, lng], 14, { duration: 1.2 });
+      L.popup().setLatLng([lat, lng]).setContent(`<b>📍 ${name}</b>`).openOn(map);
     }
 
-    // 10. Event Listeners สำหรับ UI
+    // 8. Event Listeners
     document.getElementById('timeSlider').addEventListener('input', (e) => {
       updateDisplay(parseInt(e.target.value));
     });
@@ -400,20 +407,19 @@
       const btn = document.getElementById('playBtn');
 
       if (isPlaying) {
-        btn.innerText = "⏸ PAUSE";
+        btn.innerText = "⏸ หยุดเล่น";
         playInterval = setInterval(() => {
           let nextHour = (currentHourIndex + 1) % 24;
           document.getElementById('timeSlider').value = nextHour;
           updateDisplay(nextHour);
         }, 1200);
       } else {
-        btn.innerText = "▶ AUTO PLAY";
+        btn.innerText = "▶ เล่นแอนิเมชัน";
         clearInterval(playInterval);
       }
     });
 
-    // เริ่มต้นทำงานเมื่อโหลดหน้าเว็บ
-    createGrid();
+    // เริ่มต้นทำงาน
     fetchRainForecast();
   </script>
 </body>
